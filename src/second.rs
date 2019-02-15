@@ -1,5 +1,3 @@
-use std::mem;
-
 type Link = Option<Box<Node>>;
 
 struct Node {
@@ -36,7 +34,7 @@ impl List {
 
 impl Drop for List {
     fn drop(&mut self) {
-        let mut cur_link = mem::replace(&mut self.head, None);
+        let mut cur_link = self.head.take();
         // `while let` == "do this thing until this pattern doesn't match"
         while let Some(mut boxed_node) = cur_link {
             cur_link = boxed_node.next.take();
