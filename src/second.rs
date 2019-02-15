@@ -1,9 +1,6 @@
 use std::mem;
 
-enum Link {
-    Empty,
-    More(Box<Node>),
-}
+type Link = Option<Box<Node>>;
 
 struct Node {
     elem: i32,
@@ -16,36 +13,33 @@ pub struct List {
 
 impl List {
     pub fn new() -> Self {
-        List { head: Link::Empty }
+        List { head: None }
     }
 
     pub fn push(&mut self, elem: i32) {
         let new_node = Box::new(Node {
             elem: elem,
-            next: mem::replace(&mut self.head, Link::Empty),
+            next: self.head.take(),
         });
 
-        self.head = Link::More(new_node);
+        self.head = Some(new_node);
     }
 
     pub fn pop(&mut self) -> Option<i32> {
-        match mem::replace(&mut self.head, Link::Empty) {
-            Link::Empty => None,
-            Link::More(boxed_node) => {
-                let node = *boxed_node;
-                self.head = node.next;
-                Some(node.elem)
-            }
-        }
+        self.head.take().map(|node| {
+            let node = *node;
+            self.head = node.next;
+            node.elem
+        })
     }
 }
 
 impl Drop for List {
     fn drop(&mut self) {
-        let mut cur_link = mem::replace(&mut self.head, Link::Empty);
+        let mut cur_link = mem::replace(&mut self.head, None);
         // `while let` == "do this thing until this pattern doesn't match"
-        while let Link::More(mut boxed_node) = cur_link {
-            cur_link = mem::replace(&mut boxed_node.next, Link::Empty);
+        while let Some(mut boxed_node) = cur_link {
+            cur_link = boxed_node.next.take();
             // boxed_node goes out of scope and gets dropped here;
             // but its Node's `next` field has been set to Link::Empty
             // so no unbounded recursion occurs.
